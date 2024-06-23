@@ -19,6 +19,8 @@ typedef struct {
     DOption down;
 } DMenu;
 
+static DOption SPACE = {"[SPACE]", ' ', 0};
+
 // Top-level menu
 
 static DMenu menu_top = {

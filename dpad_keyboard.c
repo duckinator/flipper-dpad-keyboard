@@ -8,6 +8,8 @@
 
 #include "menu.h"
 
+#define BUFFER_LENGTH 23
+
 typedef enum {
     EventTypeTick,
     EventTypeKey,
@@ -32,8 +34,7 @@ static void render_callback(Canvas* const canvas, void* ctx) {
     }
 
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(
-        canvas, 0, 0, AlignLeft, AlignTop, plugin_state->buffer);
+    canvas_draw_str_aligned(canvas, 0, 0, AlignLeft, AlignTop, plugin_state->buffer);
 
     DMenu *menu = menus[plugin_state->menu];
 
@@ -61,7 +62,12 @@ static void input_callback(InputEvent* input_event, FuriMessageQueue* event_queu
 
 static void dpad_keyboard_state_init(PluginState* const plugin_state) {
     plugin_state->menu = 0;
-    plugin_state->buffer = (char*)malloc(100);
+    plugin_state->buffer = (char*)malloc(BUFFER_LENGTH);
+    memset(plugin_state->buffer, 0, BUFFER_LENGTH);
+}
+
+static void dpad_keyboard_state_cleanup(PluginState* const plugin_state) {
+    free(plugin_state->buffer);
 }
 
 static void dpad_keyboard_apply_option(PluginState *plugin_state, DOption *option) {
@@ -69,9 +75,11 @@ static void dpad_keyboard_apply_option(PluginState *plugin_state, DOption *optio
         size_t old_len = strlen(plugin_state->buffer);
         size_t option_len = strlen(&option->value);
         size_t new_len = old_len + option_len;
-        plugin_state->buffer = realloc(plugin_state->buffer, new_len + 1);
-        strncpy(plugin_state->buffer + old_len, &(option->value), option_len);
-        plugin_state->buffer[new_len + 1] = 0;
+        //plugin_state->buffer = realloc(plugin_state->buffer, new_len + 1);
+        if (new_len < BUFFER_LENGTH) {
+            strncpy(plugin_state->buffer + old_len, &(option->value), option_len);
+            plugin_state->buffer[new_len + 1] = 0;
+        }
     }
     plugin_state->menu = option->next_menu;
 }
@@ -133,6 +141,8 @@ int32_t dpad_keyboard_app() {
                                 &(menus[plugin_state->menu]->left));
                         break;
                     case InputKeyOk:
+                        dpad_keyboard_apply_option(plugin_state, &SPACE);
+                        break;
                     case InputKeyBack:
                         if (plugin_state->menu == MAIN_MENU) {
                             dpad_keyboard_backspace(plugin_state);
@@ -143,8 +153,17 @@ int32_t dpad_keyboard_app() {
                     default:
                         break;
                     }
-                } else if (event.input.type == InputTypeLong && event.input.key == InputKeyBack) {
-                    processing = false;
+                } else if (event.input.type == InputTypeLong) {
+                    switch (event.input.key) {
+                    case InputKeyOk:
+                        // ...
+                        break;
+                    case InputKeyBack:
+                        processing = false;
+                        break;
+                    default:
+                        break;
+                    }
                 }
             }
         } else {
@@ -161,6 +180,9 @@ int32_t dpad_keyboard_app() {
     view_port_free(view_port);
     furi_message_queue_free(event_queue);
     furi_mutex_free(plugin_state->mutex);
+
+    dpad_keyboard_state_cleanup(plugin_state);
+    free(plugin_state);
 
     return 0;
 }
