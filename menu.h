@@ -45,8 +45,8 @@ static DMenu menu_qz_sym1 = {
 };
 
 static DMenu menu_num = {
-    {"1-4", NOTHING, 13},
-    {"5-8", NOTHING, 14},
+    {"1234", NOTHING, 13},
+    {"5678", NOTHING, 14},
     {"90#%", NOTHING, 15},
     {"+-=~", NOTHING, 16},
 };
